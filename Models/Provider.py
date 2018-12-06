@@ -2,7 +2,6 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.by import By
-import datetime
 import os
 
 
@@ -11,17 +10,18 @@ class Provider:
     def __init__(self, username, password):
 
         self.provider = self.__class__.__name__
-        self.month = datetime.datetime.now().month
+        self.month = None
+        self.year = None
         self.bill = None
-        self.meters = None
+        self.services = None
 
         self._username = username
         self._password = password
+        self._timeout = 15
         self._downloads_dir = "./Downloads"
+        self._bill_file_name = None
         self._options = webdriver.ChromeOptions()
         self._options.add_argument('incognito')
-        # self._options.add_argument("--headless")
-        # self._options.add_argument("download.default_directory=./Downloads")
         self._options.add_experimental_option(
             "prefs", {
                 "download.default_directory": r"./Downloads",
@@ -30,34 +30,49 @@ class Provider:
                 "safebrowsing.enabled": True
             }
         )
-        self._driver = webdriver.Chrome('./Drivers/chromedriver', chrome_options=self._options)
 
-        return
+        try:
+            self._driver = webdriver.Chrome('./Drivers/chromedriver', chrome_options=self._options)
+            self._retrieve_current_data()
+        except Exception as e:
+            print(e)
+            # self.__exit__()
+        finally:
+            pass
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._logout()
+        self._cleanup_downloads_dir()
         self._driver.close()
 
-    def retrieve_historic_data(self):
-        raise NotImplementedError
-
-    def retrieve_current_data(self):
+    def _retrieve_current_data(self):
         self._login()
-        self.bill = self._get_bill()
-        self.meters = self._get_meters_data()
+        self._bill_file_name = self._download_bill()
+        self.bill = float(self._get_bill_total())
+        self.services = self._get_services()
+        self.year, self.month = self._get_bill_date()
         self._logout()
-        return self.bill, self.meters
+        return self.bill, self.services
 
     def _login(self):
         raise NotImplementedError
 
-    def _get_bill(self):
+    def _download_bill(self):
         raise NotImplementedError
 
-    def _get_meters_data(self):
+    def _get_bill_date(self):
+        raise NotImplementedError
+
+    def _get_bill_total(self):
+        raise NotImplementedError
+
+    def _calculate_bill_total(self):
+        return sum([s.bill for s in self.services])
+
+    def _get_services(self):
         raise NotImplementedError
 
     def _logout(self):
@@ -95,5 +110,3 @@ class Provider:
         self._driver.close()
         self._driver.switch_to.window(main_window_handle)
         return progress
-
-
