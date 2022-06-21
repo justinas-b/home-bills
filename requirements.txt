@@ -9,7 +9,7 @@ jdcal==1.4
 kiwisolver==1.0.1
 matplotlib==3.0.2
 mccabe==0.6.1
-numpy==1.15.4
+numpy==1.22.0
 opencv-python==3.4.4.19
 openpyxl==2.5.12
 pandas==0.23.4
